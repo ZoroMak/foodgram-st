@@ -13,7 +13,7 @@ services:
       - pg_data:/var/lib/postgresql/data
 
   backend:
-    build: ../backend/
+    image: zoromax/foodgram_backend:latest
     env_file: .env
     depends_on:
       - db
@@ -25,13 +25,13 @@ services:
   frontend:
     container_name: foodgram-front
     env_file: .env
-    build: ../frontend
+    image: zoromax/foodgram_gateway:latest
     volumes:
       - ../frontend/:/app/result_build/
 
   nginx:
     container_name: foodgram-proxy
-    build: .
+    image: zoromax/foodgram_gateway:latest
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
       - ../frontend/build:/usr/share/nginx/html/
