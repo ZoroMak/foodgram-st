@@ -143,4 +143,3 @@ media/
 
 backend/create_ingredients.py
 backend/db.sqlite3
-backend/recipes/management/commands/load_ingredients.py

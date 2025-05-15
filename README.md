@@ -71,9 +71,11 @@
 
 1. Описать файл infra/.env (см. .env_example)
 
-2. Запустить Docker compose:
+2. Запустить Docker compose и выполнить следующие команды:
 ``` bash
 sudo docker compose -f infra/docker-compose.yml up -d
+docker-compose exec foodgram-backend python manage.py collectstatic
+docker-compose exec foodgram-backend cp -r /app/collected_static/. /static/static/
 ```
 
 ## Запуск проекта на удаленном сервере

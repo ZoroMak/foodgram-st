@@ -1,7 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
-from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import (IsAuthenticated, AllowAny)
 from rest_framework.response import Response
 
@@ -15,6 +14,7 @@ from users.serializers import (
     SetPasswordSerializer,
 )
 
+from .pagination import DefaultPagination
 from .serializers import UserWithRecipesSerializer
 
 
@@ -22,7 +22,7 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = CreateUserSerializer
     permission_classes = (AllowAny,)
-    pagination_class = LimitOffsetPagination
+    pagination_class = DefaultPagination
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve', 'me']:
