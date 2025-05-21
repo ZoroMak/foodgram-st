@@ -1,6 +1,7 @@
-from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
-from .fields import Base64ImageField
+from drf_extra_fields.fields import Base64ImageField
+from rest_framework import serializers
+
 from .models import User
 
 
@@ -27,29 +28,6 @@ class UserSerializer(serializers.ModelSerializer):
         return False
 
 
-class CreateUserSerializer(UserSerializer):
-    password = (serializers.CharField(
-        write_only=True,
-        validators=[validate_password]
-    ))
-
-    class Meta:
-        model = User
-        fields = (
-            'id',
-            'email',
-            'username',
-            'first_name',
-            'last_name',
-            'password'
-        )
-        extra_kwargs = {"password": {"write_only": True}}
-
-    def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
-        return user
-
-
 class UserResponseOnCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -64,9 +42,9 @@ class SetAvatarSerializer(serializers.ModelSerializer):
         fields = ('avatar',)
 
     def validate(self, data):
-        avatar = self.initial_data.get("avatar")
+        avatar = self.initial_data.get('avatar')
         if not avatar:
-            raise serializers.ValidationError("Нельзя загрузить пустой аватар")
+            raise serializers.ValidationError('Нельзя загрузить пустой аватар')
 
         return data
 

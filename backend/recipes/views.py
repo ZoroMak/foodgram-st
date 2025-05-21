@@ -1,26 +1,20 @@
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from django_filters.rest_framework import DjangoFilterBackend
+from django.db.models import F, Sum
 from django.shortcuts import get_object_or_404
-from rest_framework.permissions import (
-    SAFE_METHODS,
-    AllowAny,
-    IsAuthenticated,
-    IsAuthenticatedOrReadOnly
-)
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import (SAFE_METHODS, AllowAny,
+                                        IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
+from rest_framework.response import Response
 
 from api.pagination import DefaultPagination
 from api.permissions import IsAuthorOrReadOnly
 
 from .filters import IngredientFilter, RecipeFilter
-from .models import Recipe, Ingredient
-from .serializers import (
-    RecipeCreateSerializer,
-    RecipeSerializer,
-    RecipeMinifiedSerializer,
-    IngredientSerializer,
-)
+from .models import Ingredient, Recipe, RecipeIngredient
+from .serializers import (IngredientSerializer, RecipeCreateSerializer,
+                          RecipeMinifiedSerializer, RecipeSerializer)
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -87,18 +81,22 @@ class RecipeViewSet(viewsets.ModelViewSet):
         url_path='download_shopping_cart'
     )
     def download_shopping_cart(self, request):
-        ingredients = {}
-        for recipe in Recipe.objects.filter(shopping_cart__user=request.user):
-            for ri in recipe.recipe_ingredients.all():
-                name = ri.ingredient.name
-                unit = ri.ingredient.measurement_unit
-                amount = ri.amount
-                key = (name, unit)
-                ingredients[key] = ingredients.get(key, 0) + amount
+        qs = (
+            RecipeIngredient.objects
+            .filter(recipe__shopping_cart__user=request.user)
+            .values(
+                name=F('ingredient__name'),
+                unit=F('ingredient__measurement_unit'),
+            )
+            .annotate(total_amount=Sum('amount'))
+            .order_by('name')
+        )
 
-        lines = [f"{name} ({unit}) — {amt}" for (name, unit), amt
-                 in ingredients.items()]
-        content = "".join(lines)
+        lines = [
+            f"{item['name']} ({item['unit']}) — {item['total_amount']}\n"
+            for item in qs
+        ]
+        content = ''.join(lines)
         return Response(content, content_type='text/plain')
 
     @action(
@@ -154,13 +152,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
             many=True,
             context={'request': request}
         )
-        return self.get_paginated_response(serializer.data) \
-            if page is not None \
+        return (
+            self.get_paginated_response(serializer.data)
+            if page is not None
             else Response(serializer.data)
+        )
 
     @action(
         detail=True,
-        methods=['post', "delete"],
+        methods=['post', 'delete'],
         permission_classes=[IsAuthenticated],
         url_path='favorite'
     )

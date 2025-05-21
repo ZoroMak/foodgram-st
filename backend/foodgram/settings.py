@@ -9,7 +9,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", get_random_secret_key())
 
 DEBUG = os.getenv("DEBUG", default="True").lower() in ("true", "1")
 
-ALLOWED_HOSTS = list(os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(','))
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(',')
 
 
 # Application definition
@@ -71,6 +71,14 @@ DATABASES = {
     }
 }
 
+if DEBUG:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
@@ -126,7 +134,7 @@ DJOSER = {
     "TOKEN_MODEL": "rest_framework.authtoken.models.Token",
     "SERIALIZERS": {
         "user": "users.serializers.UserSerializer",
-        "user_create": "users.serializers.CreateUserSerializer",
+        "user_create": "djoser.serializers.UserCreateSerializer",
         "current_user": "users.serializers.UserSerializer"
     },
     "PERMISSIONS": {
@@ -135,43 +143,3 @@ DJOSER = {
         "token_create": ["rest_framework.permissions.AllowAny"]
     },
 }
-
-# LOGGING = {
-#     'version': 1,
-#     'disable_existing_loggers': False,
-#     'formatters': {
-#         'verbose': {
-#             'format': '[{levelname}] {asctime} {name} | {message}',
-#             'style': '{',
-#         },
-#         'simple': {
-#             'format': '[{levelname}] {message}',
-#             'style': '{',
-#         },
-#     },
-#     'handlers': {
-#         'console': {
-#             'level': 'DEBUG',
-#             'class': 'logging.StreamHandler',
-#             'formatter': 'verbose',
-#             'stream': sys.stdout,
-#         },
-#         'file': {
-#             'level': 'DEBUG',
-#             'class': 'logging.FileHandler',
-#             'filename': os.path.join(BASE_DIR, 'debug.log'),
-#             'formatter': 'verbose',
-#         },
-#     },
-#     'loggers': {
-#         'django': {
-#             'handlers': ['console', 'file'],
-#             'level': 'DEBUG',
-#             'propagate': True,
-#         },
-#         'django.db.backends': {
-#             'handlers': ['console', 'file'],
-#             'level': 'DEBUG',
-#         },
-#     },
-# }

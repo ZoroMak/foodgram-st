@@ -1,18 +1,14 @@
-from rest_framework.views import APIView
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
-from rest_framework.permissions import (IsAuthenticated, AllowAny)
-from rest_framework.response import Response
-
 from django.shortcuts import get_object_or_404
+from djoser.serializers import UserCreateSerializer
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from users.models import User
-from users.serializers import (
-    UserSerializer,
-    CreateUserSerializer,
-    SetAvatarSerializer,
-    SetPasswordSerializer,
-)
+from users.serializers import (SetAvatarSerializer, SetPasswordSerializer,
+                               UserSerializer)
 
 from .pagination import DefaultPagination
 from .serializers import UserWithRecipesSerializer
@@ -20,7 +16,7 @@ from .serializers import UserWithRecipesSerializer
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
-    serializer_class = CreateUserSerializer
+    serializer_class = UserCreateSerializer
     permission_classes = (AllowAny,)
     pagination_class = DefaultPagination
 
@@ -82,13 +78,13 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        methods=["post", "delete"],
-        url_path="subscribe",
+        methods=['post', 'delete'],
+        url_path='subscribe',
         url_name='subscribe',
         permission_classes=[IsAuthenticated]
     )
     def subscribe(self, request, pk=None):
-        if request.method == "POST":
+        if request.method == 'POST':
             return self.add_subscribe(request, pk)
         return self.remove_subscribe(request, pk)
 
@@ -99,13 +95,13 @@ class UserViewSet(viewsets.ModelViewSet):
 
         if user == author:
             return Response(
-                {"errors": "Нельзя подписаться на самого себя."},
+                {'errors': 'Нельзя подписаться на самого себя.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if author in user.subscriptions.all():
+        if user.subscriptions.filter(pk=author.pk).exists():
             return Response(
-                {"errors": "Вы уже подписаны на этого пользователя."},
+                {'errors': 'Вы уже подписаны на этого пользователя.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -113,26 +109,30 @@ class UserViewSet(viewsets.ModelViewSet):
 
         serializer = UserWithRecipesSerializer(
             author,
-            context={"request": request}
+            context={'request': request}
         )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @staticmethod
     def remove_subscribe(request, pk=None):
-        try:
-            target = User.objects.get(pk=pk)
-        except User.DoesNotExist:
+        author = get_object_or_404(User, pk=pk)
+
+        through_model = User.subscriptions.through
+        deleted_count, _ = through_model.objects.filter(
+            from_user_id=request.user.id,
+            to_user_id=author.id
+        ).delete()
+
+        if not deleted_count:
             return Response(
-                {'detail': 'Пользователь не найден'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        if not request.user.subscriptions.filter(pk=target.pk).exists():
-            return Response(
-                {'detail': 'Вы не подписаны на данного пользователя'},
+                {'detail': f'Вы не подписаны на {author.username}'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        request.user.subscriptions.remove(target)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+
+        return Response(
+            {'detail': f'Вы отписались от {author.username}'},
+            status=status.HTTP_204_NO_CONTENT
+        )
 
 
 class AvatarUpdateView(APIView):
