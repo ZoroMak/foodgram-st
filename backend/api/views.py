@@ -7,9 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from users.models import User
-from users.serializers import (SetAvatarSerializer, SetPasswordSerializer,
-                               UserSerializer)
-
+from users.serializers import SetAvatarSerializer, SetPasswordSerializer, UserSerializer
 from .pagination import DefaultPagination
 from .serializers import UserWithRecipesSerializer
 
@@ -21,70 +19,63 @@ class UserViewSet(viewsets.ModelViewSet):
     pagination_class = DefaultPagination
 
     def get_serializer_class(self):
-        if self.action in ['list', 'retrieve', 'me']:
+        if self.action in ["list", "retrieve", "me"]:
             return UserSerializer
         return super().get_serializer_class()
 
     @action(
         detail=False,
-        methods=['get'],
+        methods=["get"],
         permission_classes=[IsAuthenticated],
-        url_path='me'
+        url_path="me",
     )
     def me(self, request):
-        serializer = self.get_serializer(
-            request.user,
-            context={'request': request}
-        )
+        serializer = self.get_serializer(request.user, context={"request": request})
         return Response(serializer.data)
 
     @action(
         detail=False,
-        methods=['post'],
+        methods=["post"],
         permission_classes=[IsAuthenticated],
-        url_path='set_password'
+        url_path="set_password",
     )
     def set_password(self, request):
         serializer = SetPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = request.user
-        if not user.check_password(
-                serializer.validated_data['current_password']
-        ):
+        if not user.check_password(serializer.validated_data["current_password"]):
             return Response(
-                {'current_password': ['Неверный текущий пароль']},
-                status=status.HTTP_400_BAD_REQUEST
+                {"current_password": ["Неверный текущий пароль"]},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        user.set_password(serializer.validated_data['new_password'])
+        user.set_password(serializer.validated_data["new_password"])
         user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=False,
-        methods=['get'],
+        methods=["get"],
         permission_classes=[IsAuthenticated],
-        url_path='subscriptions'
+        url_path="subscriptions",
     )
     def subscriptions(self, request):
         subscribed_users = request.user.subscriptions.all()
         page = self.paginate_queryset(subscribed_users)
         serializer = UserWithRecipesSerializer(
-            page,
-            many=True,
-            context={'request': request}
+            page, many=True, context={"request": request}
         )
         return self.get_paginated_response(serializer.data)
 
     @action(
         detail=True,
-        methods=['post', 'delete'],
-        url_path='subscribe',
-        url_name='subscribe',
-        permission_classes=[IsAuthenticated]
+        methods=["post", "delete"],
+        url_path="subscribe",
+        url_name="subscribe",
+        permission_classes=[IsAuthenticated],
     )
     def subscribe(self, request, pk=None):
-        if request.method == 'POST':
+        if request.method == "POST":
             return self.add_subscribe(request, pk)
         return self.remove_subscribe(request, pk)
 
@@ -95,22 +86,19 @@ class UserViewSet(viewsets.ModelViewSet):
 
         if user == author:
             return Response(
-                {'errors': 'Нельзя подписаться на самого себя.'},
-                status=status.HTTP_400_BAD_REQUEST
+                {"errors": "Нельзя подписаться на самого себя."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if user.subscriptions.filter(pk=author.pk).exists():
             return Response(
-                {'errors': 'Вы уже подписаны на этого пользователя.'},
-                status=status.HTTP_400_BAD_REQUEST
+                {"errors": "Вы уже подписаны на этого пользователя."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         user.subscriptions.add(author)
 
-        serializer = UserWithRecipesSerializer(
-            author,
-            context={'request': request}
-        )
+        serializer = UserWithRecipesSerializer(author, context={"request": request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @staticmethod
@@ -119,19 +107,18 @@ class UserViewSet(viewsets.ModelViewSet):
 
         through_model = User.subscriptions.through
         deleted_count, _ = through_model.objects.filter(
-            from_user_id=request.user.id,
-            to_user_id=author.id
+            from_user_id=request.user.id, to_user_id=author.id
         ).delete()
 
         if not deleted_count:
             return Response(
-                {'detail': f'Вы не подписаны на {author.username}'},
-                status=status.HTTP_400_BAD_REQUEST
+                {"detail": f"Вы не подписаны на {author.username}"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         return Response(
-            {'detail': f'Вы отписались от {author.username}'},
-            status=status.HTTP_204_NO_CONTENT
+            {"detail": f"Вы отписались от {author.username}"},
+            status=status.HTTP_204_NO_CONTENT,
         )
 
 
@@ -154,5 +141,5 @@ class AvatarUpdateView(APIView):
         if user.avatar:
             user.avatar.delete(save=False)
             user.avatar = None
-            user.save(update_fields=['avatar'])
+            user.save(update_fields=["avatar"])
         return Response(status=status.HTTP_204_NO_CONTENT)

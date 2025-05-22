@@ -12,17 +12,17 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'id',
-            'username',
-            'email',
-            'first_name',
-            'last_name',
-            'is_subscribed',
-            'avatar'
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "is_subscribed",
+            "avatar",
         )
 
     def get_is_subscribed(self, obj):
-        request = self.context.get('request')
+        request = self.context.get("request")
         if request and request.user.is_authenticated:
             return request.user in obj.subscribers.all()
         return False
@@ -31,7 +31,7 @@ class UserSerializer(serializers.ModelSerializer):
 class UserResponseOnCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'email', 'username', 'first_name', 'last_name')
+        fields = ("id", "email", "username", "first_name", "last_name")
 
 
 class SetAvatarSerializer(serializers.ModelSerializer):
@@ -39,12 +39,12 @@ class SetAvatarSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('avatar',)
+        fields = ("avatar",)
 
     def validate(self, data):
-        avatar = self.initial_data.get('avatar')
+        avatar = self.initial_data.get("avatar")
         if not avatar:
-            raise serializers.ValidationError('Нельзя загрузить пустой аватар')
+            raise serializers.ValidationError("Нельзя загрузить пустой аватар")
 
         return data
 
